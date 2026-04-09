@@ -4,6 +4,7 @@ import { useJyutpingToggle } from './hooks/useJyutpingToggle'
 import { useSwipeNavigation } from './hooks/useSwipeNavigation'
 import { todayStr, getThursday, shiftWeek } from './lib/dates'
 import { PoemView } from './components/PoemView'
+import { PoemIllustration } from './components/PoemIllustration'
 import { DateHeader } from './components/DateHeader'
 import { LoadingState } from './components/LoadingState'
 import { ErrorState } from './components/ErrorState'
@@ -42,6 +43,8 @@ export default function App() {
       className="min-h-dvh bg-parchment relative"
       {...swipe}
     >
+      {poem && <PoemIllustration dailyImages={poem.daily_images} dayKey={dayKey} />}
+
       {loading && (
         <div className="px-6 pt-8 max-w-[480px] mx-auto">
           <DateHeader date={currentThursday} />

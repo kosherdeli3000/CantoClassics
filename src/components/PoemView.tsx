@@ -26,7 +26,6 @@ export function PoemView({ poem, dayKey, jyutpingOn, toggleJyutping, showFirstLa
 
   return (
     <article className="px-6 pt-8 pb-20 max-w-[480px] mx-auto min-h-dvh relative">
-      <PoemIllustration dailyImages={poem.daily_images} dayKey={dayKey} />
       <div className="relative">
       <DateHeader date={poem.date} />
 

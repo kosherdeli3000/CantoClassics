@@ -11,12 +11,12 @@ export function PoemIllustration({ dailyImages, dayKey }: Props) {
   if (!imageUrl) return null
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
       <img
         src={imageUrl}
         alt=""
         className="w-full h-full object-cover"
-        style={{ opacity: 0.08 }}
+        style={{ opacity: 0.05 }}
         loading="eager"
       />
     </div>
