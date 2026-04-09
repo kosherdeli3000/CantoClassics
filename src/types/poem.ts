@@ -18,9 +18,13 @@ export interface VocabEntry {
   note?: string
 }
 
+export interface DailyImages {
+  [day: string]: string  // "thu": url, "fri": url, etc.
+}
+
 export interface Poem {
   id: string
-  date: string
+  date: string                   // Thursday date (week start)
   title_zh: string
   title_en: string
   author_zh: string
@@ -35,9 +39,12 @@ export interface Poem {
   literary_note: string
   sources: string[]
   season_hint: 'spring' | 'summer' | 'autumn' | 'winter' | null
-  image_prompt: string | null
-  image_url: string | null
+  image_prompts: string[] | null  // 7 prompts, Thu-Wed
+  daily_images: DailyImages | null
   created_at: string
 }
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
+
+export const DAY_KEYS = ['thu', 'fri', 'sat', 'sun', 'mon', 'tue', 'wed'] as const
+export type DayKey = typeof DAY_KEYS[number]

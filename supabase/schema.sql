@@ -3,7 +3,7 @@
 
 create table if not exists poems (
   id uuid default gen_random_uuid() primary key,
-  date date unique not null,
+  date date unique not null,          -- Thursday date (week start)
   title_zh text not null,
   title_en text not null,
   author_zh text not null,
@@ -18,8 +18,8 @@ create table if not exists poems (
   literary_note text not null,
   sources text[] not null,
   season_hint text,
-  image_prompt text,
-  image_url text,
+  image_prompts text[],               -- 7 evolving prompts (Thu-Wed)
+  daily_images jsonb,                 -- {"thu": "url", "fri": "url", ...}
   created_at timestamptz default now()
 );
 

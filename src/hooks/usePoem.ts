@@ -1,22 +1,34 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Poem } from '../types/poem'
+import { getThursday, getDayKey, todayStr } from '../lib/dates'
+import type { Poem, DayKey } from '../types/poem'
 
-export function usePoem(date: string) {
+interface UsePoemResult {
+  poem: Poem | null
+  dayKey: DayKey
+  loading: boolean
+  error: string | null
+  retry: () => void
+}
+
+export function usePoem(weekDate: string): UsePoemResult {
   const [poem, setPoem] = useState<Poem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const thursday = getThursday(weekDate)
+  const dayKey = getDayKey(todayStr())
 
   async function fetchPoem() {
     setLoading(true)
     setError(null)
 
     try {
-      // First try to get from DB directly
+      // Try to get from DB directly using the Thursday date
       const { data: existing } = await supabase
         .from('poems')
         .select('*')
-        .eq('date', date)
+        .eq('date', thursday)
         .single()
 
       if (existing) {
@@ -28,7 +40,7 @@ export function usePoem(date: string) {
       // If not found, call the edge function to generate
       const { data, error: fnError } = await supabase.functions.invoke(
         'generate-poem',
-        { body: { date } }
+        { body: { date: weekDate } }
       )
 
       if (fnError) throw new Error(fnError.message)
@@ -44,7 +56,7 @@ export function usePoem(date: string) {
 
   useEffect(() => {
     fetchPoem()
-  }, [date])
+  }, [thursday])
 
-  return { poem, loading, error, retry: fetchPoem }
+  return { poem, dayKey, loading, error, retry: fetchPoem }
 }

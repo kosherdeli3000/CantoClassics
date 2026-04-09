@@ -1,8 +1,13 @@
+import type { DailyImages, DayKey } from '../types/poem'
+
 interface Props {
-  imageUrl: string | null
+  dailyImages: DailyImages | null
+  dayKey: DayKey
 }
 
-export function PoemIllustration({ imageUrl }: Props) {
+export function PoemIllustration({ dailyImages, dayKey }: Props) {
+  const imageUrl = dailyImages?.[dayKey] || dailyImages?.thu || null
+
   if (!imageUrl) return null
 
   return (
