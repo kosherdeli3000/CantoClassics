@@ -1,7 +1,14 @@
+export interface WordByWord {
+  char: string
+  jyutping: string
+  meaning: string
+}
+
 export interface LineByLine {
   zh: string
   jyutping: string
   en: string
+  words: WordByWord[]
 }
 
 export interface VocabEntry {

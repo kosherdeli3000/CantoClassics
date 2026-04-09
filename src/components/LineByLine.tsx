@@ -40,6 +40,27 @@ export function LineByLine({ lines, visible, onToggle }: Props) {
               <p className="font-[var(--font-serif-en)] text-ink-light text-base mt-1">
                 {line.en}
               </p>
+
+              {/* Word-by-word literal breakdown */}
+              {activeLine === i && line.words && line.words.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-rule/50 reveal-enter">
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+                    {line.words.map((w, j) => (
+                      <div key={j} className="text-center">
+                        <span className="font-[var(--font-serif-zh)] text-ink text-base block">
+                          {w.char}
+                        </span>
+                        <span className="font-[var(--font-serif-en)] italic text-warm-gray text-xs block">
+                          {w.jyutping}
+                        </span>
+                        <span className="font-[var(--font-serif-en)] text-warm-gray text-xs block">
+                          {w.meaning}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </button>
           ))}
         </div>
