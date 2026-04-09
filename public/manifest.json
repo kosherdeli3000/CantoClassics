@@ -1,0 +1,27 @@
+{
+  "name": "唐詩日記 — Tang Poem Daily",
+  "short_name": "唐詩日記",
+  "description": "A Tang Dynasty poem for you, each morning.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF6F0",
+  "theme_color": "#FAF6F0",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

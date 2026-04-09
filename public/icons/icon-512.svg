@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="64" fill="#FAF6F0"/>
+  <rect x="96" y="96" width="320" height="320" rx="32" fill="none" stroke="#C0594B" stroke-width="18"/>
+  <text x="256" y="288" text-anchor="middle" font-family="serif" font-size="192" fill="#C0594B">詩</text>
+</svg>

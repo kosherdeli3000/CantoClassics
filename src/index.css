@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-parchment: #FAF6F0;
+  --color-parchment-dark: #F5EDE3;
+  --color-ink: #2C2420;
+  --color-ink-light: #4A3F38;
+  --color-vermillion: #C0594B;
+  --color-vermillion-light: #D4796D;
+  --color-warm-gray: #8C7D6D;
+  --color-warm-gray-light: #B0A496;
+  --color-rule: #E0D5C8;
+
+  --font-serif-zh: "Noto Serif TC", "Songti TC", serif;
+  --font-serif-en: "Crimson Pro", "Georgia", serif;
+}
+
+html {
+  background-color: var(--color-parchment);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-serif-en);
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+/* Reveal animation utility */
+.reveal-enter {
+  animation: revealIn 300ms ease-out forwards;
+}
+
+.reveal-exit {
+  animation: revealOut 200ms ease-in forwards;
+}
+
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Jyutping fade */
+.jyutping-enter {
+  animation: fadeIn 250ms ease forwards;
+}
+
+.jyutping-exit {
+  animation: fadeOut 200ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Pulsing loading dot */
+.pulse-dot {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
