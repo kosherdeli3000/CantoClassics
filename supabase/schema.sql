@@ -18,7 +18,8 @@ create table if not exists poems (
   literary_note text not null,
   sources text[] not null,
   season_hint text,
-  illustration text,
+  image_prompt text,
+  image_url text,
   created_at timestamptz default now()
 );
 

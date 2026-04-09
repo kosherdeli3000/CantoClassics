@@ -35,7 +35,8 @@ export interface Poem {
   literary_note: string
   sources: string[]
   season_hint: 'spring' | 'summer' | 'autumn' | 'winter' | null
-  illustration: string | null
+  image_prompt: string | null
+  image_url: string | null
   created_at: string
 }
 

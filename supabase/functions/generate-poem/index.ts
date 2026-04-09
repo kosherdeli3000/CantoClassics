@@ -25,7 +25,7 @@ Your audience is a single person — speak to her warmly, like a friend leaving 
 - literary_note: One small observation about the craft — a wordplay, a structural choice, an image worth lingering on. Like a friend pointing something out over tea.
 - sources: 1-3 scholarly or reliable sources (e.g. "全唐詩, Vol. 5", "唐詩三百首", a well-known translation anthology)
 - season_hint: If the poem clearly evokes a season, include "spring", "summer", "autumn", or "winter". Otherwise null.
-- illustration: Choose exactly ONE keyword from this list that best matches the poem's dominant imagery: "plum_blossom", "rain", "moon", "mountains", "willow", "river", "snow", "clouds", "chrysanthemum", "bamboo", "geese", "lotus", "pine", "stars", "mist". This will be used to render a faint decorative line drawing behind the poem. Pick the one that most resonates with the poem's central image or mood.
+- image_prompt: Write a short prompt (1-2 sentences) to generate a traditional Chinese ink wash painting (水墨畫) that evokes the poem's central imagery. Describe a single scene — not the whole poem, just its most vivid image. Style: traditional Chinese brush painting on rice paper, monochrome ink wash, minimal, lots of empty space, contemplative, Song/Tang dynasty aesthetic. Example: "A lone pine tree on a misty cliff edge, traditional Chinese ink wash style, vast empty space, a few birds in the distance." Do NOT include any text or characters in the image.
 
 Respond ONLY with a JSON object matching this exact shape:
 {
@@ -43,7 +43,7 @@ Respond ONLY with a JSON object matching this exact shape:
   "literary_note": "string",
   "sources": ["string array"],
   "season_hint": "spring | summer | autumn | winter | null",
-  "illustration": "one of: plum_blossom | rain | moon | mountains | willow | river | snow | clouds | chrysanthemum | bamboo | geese | lotus | pine | stars | mist"
+  "image_prompt": "string — ink wash painting prompt for this poem"
 }
 
 No markdown fences, no preamble. Just the JSON object.`;
@@ -54,6 +54,64 @@ function getSeason(dateStr: string): string {
   if (month >= 6 && month <= 8) return "summer";
   if (month >= 9 && month <= 11) return "autumn";
   return "winter";
+}
+
+async function generateImage(prompt: string, runwayKey: string): Promise<string | null> {
+  try {
+    // Start generation task
+    const createRes = await fetch("https://api.dev.runwayml.com/v1/text_to_image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${runwayKey}`,
+        "X-Runway-Version": "2024-11-06",
+      },
+      body: JSON.stringify({
+        promptText: prompt,
+        model: "gen4_image",
+        ratio: "1080:1920", // portrait for phone
+      }),
+    });
+
+    if (!createRes.ok) {
+      console.error("Runway create error:", await createRes.text());
+      return null;
+    }
+
+    const task = await createRes.json();
+    const taskId = task.id;
+
+    // Poll for completion (max 60 seconds)
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const pollRes = await fetch(`https://api.dev.runwayml.com/v1/tasks/${taskId}`, {
+        headers: {
+          "Authorization": `Bearer ${runwayKey}`,
+          "X-Runway-Version": "2024-11-06",
+        },
+      });
+
+      if (!pollRes.ok) continue;
+
+      const status = await pollRes.json();
+
+      if (status.status === "SUCCEEDED" && status.output?.length > 0) {
+        return status.output[0];
+      }
+
+      if (status.status === "FAILED") {
+        console.error("Runway generation failed:", status);
+        return null;
+      }
+    }
+
+    console.error("Runway generation timed out");
+    return null;
+  } catch (err) {
+    console.error("Runway error:", err);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -74,6 +132,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+    const runwayKey = Deno.env.get("RUNWAYML_API_SECRET")!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -148,6 +207,9 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
       ? poemData.season_hint
       : null;
 
+    // Generate ink wash painting via Runway (non-blocking for DB insert)
+    const imageUrl = await generateImage(poemData.image_prompt, runwayKey);
+
     // Insert into database
     const { data: inserted, error: insertError } = await supabase
       .from("poems")
@@ -167,7 +229,8 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         literary_note: poemData.literary_note,
         sources: poemData.sources,
         season_hint: seasonHint,
-        illustration: poemData.illustration || null,
+        image_prompt: poemData.image_prompt || null,
+        image_url: imageUrl,
       })
       .select()
       .single();
