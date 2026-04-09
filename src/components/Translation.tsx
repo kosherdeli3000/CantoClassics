@@ -5,19 +5,21 @@ interface Props {
 }
 
 export function Translation({ text, visible, onToggle }: Props) {
-  if (!visible) return null
-
   return (
-    <div className="reveal-enter mt-6 mb-4 border-t border-rule pt-6">
+    <div className="mt-6 mb-4 border-t border-rule pt-5">
       <button
         onClick={onToggle}
-        className="text-xs text-warm-gray-light uppercase tracking-widest mb-3 hover:text-vermillion transition-colors"
+        className="font-[var(--font-serif-en)] italic text-warm-gray text-sm mb-3 hover:text-vermillion transition-colors flex items-center gap-1"
       >
-        Translation &uarr;
+        Translation {visible ? '−' : '↓'}
       </button>
-      <p className="font-[var(--font-serif-en)] text-ink-light text-lg leading-relaxed text-center whitespace-pre-line">
-        {text}
-      </p>
+      {visible && (
+        <div className="reveal-enter">
+          <p className="font-[var(--font-serif-en)] text-ink-light text-lg leading-relaxed text-center whitespace-pre-line">
+            {text}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

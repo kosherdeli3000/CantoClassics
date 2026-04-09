@@ -10,11 +10,12 @@ Your audience is a single person — speak to her warmly, like a friend leaving 
 - Rotate through a wide range of poets. Do not repeat a poet from the recent_poets list provided in the user message.
 - Lean toward poems with vivid imagery, emotional resonance, or gentle beauty — avoid battlefield/political poems unless they are exceptionally lovely
 - Draw from well-known, verifiable poems from collections like 全唐詩 (Complete Tang Poems) or 唐詩三百首 (300 Tang Poems). Do not invent poems.
+- When possible, try to match the poem's mood or imagery to the current season (provided in the user message). This is a gentle preference, not a hard rule — a beautiful poem always wins over a mediocre seasonal one.
 
 # Key guidelines
 - All Chinese text MUST be in Traditional Chinese characters (繁體字)
 - Jyutping romanization should follow standard Jyutping (粵拼), NOT Mandarin pinyin
-- For vocabulary, pick 3-6 characters or compounds that an intermediate reader might need help with — not every word, just the ones that reward a closer look
+- For vocabulary, pick 3-6 characters or compounds that an intermediate reader might need help with — not every word, just the ones that reward a closer look. For each vocab item, if the classical Chinese meaning differs from modern Cantonese usage, note that difference.
 - The English translation should feel like poetry, not a dictionary. Let it breathe.
 - Keep the tone across all text warm, concise, and a little intimate — like a handwritten note
 - If you are uncertain about Jyutping for a specific character, flag it with (?) rather than guessing
@@ -22,6 +23,7 @@ Your audience is a single person — speak to her warmly, like a friend leaving 
 - poem_background: 1-2 sentences on when/why this poem was written. If uncertain, say so honestly.
 - literary_note: One small observation about the craft — a wordplay, a structural choice, an image worth lingering on. Like a friend pointing something out over tea.
 - sources: 1-3 scholarly or reliable sources (e.g. "全唐詩, Vol. 5", "唐詩三百首", a well-known translation anthology)
+- season_hint: If the poem clearly evokes a season, include "spring", "summer", "autumn", or "winter". Otherwise null.
 
 Respond ONLY with a JSON object matching this exact shape:
 {
@@ -37,10 +39,19 @@ Respond ONLY with a JSON object matching this exact shape:
   "author_bio": "string",
   "poem_background": "string",
   "literary_note": "string",
-  "sources": ["string array"]
+  "sources": ["string array"],
+  "season_hint": "spring | summer | autumn | winter | null"
 }
 
 No markdown fences, no preamble. Just the JSON object.`;
+
+function getSeason(dateStr: string): string {
+  const month = new Date(dateStr + "T00:00:00").getMonth() + 1;
+  if (month >= 3 && month <= 5) return "spring";
+  if (month >= 6 && month <= 8) return "summer";
+  if (month >= 9 && month <= 11) return "autumn";
+  return "winter";
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = {
@@ -88,8 +99,11 @@ Deno.serve(async (req) => {
     ];
     const recentTitles = (recentPoems || []).map((p) => p.title_zh);
 
+    const season = getSeason(targetDate);
+
     const userMessage = `Today is ${targetDate}. Serve today's poem.
 
+Current season: ${season}
 Recent poets (avoid repeating): ${recentPoets.join(", ") || "none yet"}
 Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}`;
 
@@ -125,6 +139,12 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
       throw new Error("Failed to parse poem JSON from Claude response");
     }
 
+    // Normalize season_hint
+    const validSeasons = ["spring", "summer", "autumn", "winter"];
+    const seasonHint = validSeasons.includes(poemData.season_hint)
+      ? poemData.season_hint
+      : null;
+
     // Insert into database
     const { data: inserted, error: insertError } = await supabase
       .from("poems")
@@ -143,6 +163,7 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         poem_background: poemData.poem_background,
         literary_note: poemData.literary_note,
         sources: poemData.sources,
+        season_hint: seasonHint,
       })
       .select()
       .single();

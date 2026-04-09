@@ -27,5 +27,8 @@ export interface Poem {
   poem_background: string
   literary_note: string
   sources: string[]
+  season_hint: 'spring' | 'summer' | 'autumn' | 'winter' | null
   created_at: string
 }
+
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter'

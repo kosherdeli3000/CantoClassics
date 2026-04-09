@@ -1,33 +1,62 @@
 import type { Poem } from '../types/poem'
 import { useRevealState } from '../hooks/useRevealState'
+import { useFavorite } from '../hooks/useFavorite'
 import { DateHeader } from './DateHeader'
+import { JyutpingToggle } from './JyutpingToggle'
 import { PoemLines } from './PoemLines'
+import { FavoriteButton } from './FavoriteButton'
 import { Translation } from './Translation'
 import { LineByLine } from './LineByLine'
 import { Vocabulary } from './Vocabulary'
 import { Context } from './Context'
-import { RevealButton } from './RevealButton'
+import { RevealLink } from './RevealLink'
+
+const SEASON_BG: Record<string, string> = {
+  spring: '#FBF7F1',
+  summer: '#FCF8EF',
+  autumn: '#FAF5EE',
+  winter: '#F8F5F1',
+}
 
 interface Props {
   poem: Poem
   jyutpingOn: boolean
+  toggleJyutping: () => void
+  showFirstLabel: boolean
 }
 
-export function PoemView({ poem, jyutpingOn }: Props) {
+export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: Props) {
   const { isRevealed, nextLayer, revealNext, toggleLayer } = useRevealState()
+  const { isFavorited, toggleFavorite } = useFavorite(poem.id)
+
+  const bg = (poem.season_hint && SEASON_BG[poem.season_hint]) || '#FAF6F0'
 
   return (
-    <article className="px-6 py-8 max-w-md mx-auto">
+    <article className="px-6 pt-8 pb-20 max-w-[480px] mx-auto" style={{ backgroundColor: bg }}>
       <DateHeader date={poem.date} />
+
+      {/* Jyutping toggle — below date, right-aligned */}
+      <div className="flex justify-end mb-4 -mt-2">
+        <JyutpingToggle
+          isOn={jyutpingOn}
+          onToggle={toggleJyutping}
+          showFirstLabel={showFirstLabel}
+        />
+      </div>
 
       {/* Title & Author */}
       <div className="text-center mb-2">
-        <h1 className="font-[var(--font-serif-zh)] text-ink text-xl sm:text-2xl font-semibold">
-          {poem.title_zh}
-        </h1>
-        <p className="font-[var(--font-serif-zh)] text-warm-gray text-base mt-1">
-          {poem.author_zh}
-        </p>
+        <div className="flex items-center justify-center gap-3">
+          <h1 className="font-[var(--font-serif-zh)] text-ink text-xl sm:text-2xl font-semibold">
+            {poem.title_zh}
+          </h1>
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <p className="font-[var(--font-serif-zh)] text-warm-gray text-base">
+            {poem.author_zh}
+          </p>
+          <FavoriteButton isFavorited={isFavorited} onToggle={toggleFavorite} />
+        </div>
         <p className="font-[var(--font-serif-en)] text-warm-gray-light text-sm italic mt-0.5">
           {poem.title_en} — {poem.author_en}
         </p>
@@ -35,7 +64,7 @@ export function PoemView({ poem, jyutpingOn }: Props) {
 
       {/* Decorative rule */}
       <div className="flex justify-center my-4">
-        <div className="w-12 h-px bg-rule" />
+        <div className="w-10 h-px bg-vermillion/40" />
       </div>
 
       {/* Poem lines */}
@@ -45,36 +74,41 @@ export function PoemView({ poem, jyutpingOn }: Props) {
         jyutpingOn={jyutpingOn}
       />
 
-      {/* Reveal button */}
-      <RevealButton nextLayer={nextLayer} onReveal={revealNext} />
+      {/* Reveal link — shows next unrevealed layer */}
+      <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
 
-      {/* Progressive layers */}
-      <Translation
-        text={poem.translation_en}
-        visible={isRevealed('translation')}
-        onToggle={() => toggleLayer('translation')}
-      />
+      {/* Progressive layers — each collapsible independently */}
+      {isRevealed('translation') && (
+        <Translation
+          text={poem.translation_en}
+          visible={isRevealed('translation')}
+          onToggle={() => toggleLayer('translation')}
+        />
+      )}
 
-      <LineByLine
-        lines={poem.line_by_line}
-        visible={isRevealed('lineByLine')}
-        onToggle={() => toggleLayer('lineByLine')}
-      />
+      {isRevealed('lineByLine') && (
+        <LineByLine
+          lines={poem.line_by_line}
+          visible={isRevealed('lineByLine')}
+          onToggle={() => toggleLayer('lineByLine')}
+        />
+      )}
 
-      <Vocabulary
-        words={poem.vocabulary}
-        visible={isRevealed('vocabulary')}
-        onToggle={() => toggleLayer('vocabulary')}
-      />
+      {isRevealed('vocabulary') && (
+        <Vocabulary
+          words={poem.vocabulary}
+          visible={isRevealed('vocabulary')}
+          onToggle={() => toggleLayer('vocabulary')}
+        />
+      )}
 
-      <Context
-        authorBio={poem.author_bio}
-        poemBackground={poem.poem_background}
-        literaryNote={poem.literary_note}
-        sources={poem.sources}
-        visible={isRevealed('context')}
-        onToggle={() => toggleLayer('context')}
-      />
+      {isRevealed('context') && (
+        <Context
+          poem={poem}
+          visible={isRevealed('context')}
+          onToggle={() => toggleLayer('context')}
+        />
+      )}
     </article>
   )
 }

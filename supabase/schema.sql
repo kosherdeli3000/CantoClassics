@@ -17,7 +17,14 @@ create table if not exists poems (
   poem_background text not null,
   literary_note text not null,
   sources text[] not null,
+  season_hint text,
   created_at timestamptz default now()
+);
+
+create table if not exists favorites (
+  id uuid default gen_random_uuid() primary key,
+  poem_id uuid references poems(id) unique,
+  favorited_at timestamptz default now()
 );
 
 create table if not exists seen_poems (
@@ -29,6 +36,11 @@ create table if not exists seen_poems (
 -- Allow anonymous read access (no auth required)
 alter table poems enable row level security;
 create policy "Anyone can read poems" on poems for select using (true);
+
+alter table favorites enable row level security;
+create policy "Anyone can read favorites" on favorites for select using (true);
+create policy "Anyone can insert favorites" on favorites for insert with check (true);
+create policy "Anyone can delete favorites" on favorites for delete using (true);
 
 alter table seen_poems enable row level security;
 create policy "Anyone can read seen_poems" on seen_poems for select using (true);

@@ -1,10 +1,10 @@
 import type { RevealLayer } from '../hooks/useRevealState'
 
 const LAYER_LABELS: Record<RevealLayer, string> = {
-  translation: 'reveal translation',
-  lineByLine: 'line-by-line breakdown',
+  translation: 'translation',
+  lineByLine: 'word by word',
   vocabulary: 'vocabulary',
-  context: 'context & history',
+  context: 'about this poem',
 }
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
   onReveal: () => void
 }
 
-export function RevealButton({ nextLayer, onReveal }: Props) {
+export function RevealLink({ nextLayer, onReveal }: Props) {
   if (!nextLayer) return null
 
   return (
@@ -20,7 +20,7 @@ export function RevealButton({ nextLayer, onReveal }: Props) {
       onClick={onReveal}
       className="
         mx-auto block mt-8 mb-4
-        text-warm-gray hover:text-vermillion
+        text-vermillion hover:text-vermillion-light
         text-sm font-[var(--font-serif-en)] italic
         transition-colors duration-200
         py-2 px-4
