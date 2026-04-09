@@ -74,32 +74,49 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: P
         jyutpingOn={jyutpingOn}
       />
 
-      {/* Reveal link — shows next unrevealed layer */}
-      <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
+      {/* First reveal link — appears below poem if nothing revealed yet */}
+      {!isRevealed('translation') && (
+        <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
+      )}
 
-      {/* Progressive layers — each collapsible independently */}
+      {/* Progressive layers — each collapsible, reveal link follows the last open section */}
       {isRevealed('translation') && (
-        <Translation
-          text={poem.translation_en}
-          visible={isRevealed('translation')}
-          onToggle={() => toggleLayer('translation')}
-        />
+        <>
+          <Translation
+            text={poem.translation_en}
+            visible={isRevealed('translation')}
+            onToggle={() => toggleLayer('translation')}
+          />
+          {!isRevealed('lineByLine') && (
+            <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
+          )}
+        </>
       )}
 
       {isRevealed('lineByLine') && (
-        <LineByLine
-          lines={poem.line_by_line}
-          visible={isRevealed('lineByLine')}
-          onToggle={() => toggleLayer('lineByLine')}
-        />
+        <>
+          <LineByLine
+            lines={poem.line_by_line}
+            visible={isRevealed('lineByLine')}
+            onToggle={() => toggleLayer('lineByLine')}
+          />
+          {!isRevealed('vocabulary') && (
+            <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
+          )}
+        </>
       )}
 
       {isRevealed('vocabulary') && (
-        <Vocabulary
-          words={poem.vocabulary}
-          visible={isRevealed('vocabulary')}
-          onToggle={() => toggleLayer('vocabulary')}
-        />
+        <>
+          <Vocabulary
+            words={poem.vocabulary}
+            visible={isRevealed('vocabulary')}
+            onToggle={() => toggleLayer('vocabulary')}
+          />
+          {!isRevealed('context') && (
+            <RevealLink nextLayer={nextLayer} onReveal={revealNext} />
+          )}
+        </>
       )}
 
       {isRevealed('context') && (

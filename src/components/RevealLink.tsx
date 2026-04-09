@@ -2,7 +2,7 @@ import type { RevealLayer } from '../hooks/useRevealState'
 
 const LAYER_LABELS: Record<RevealLayer, string> = {
   translation: 'translation',
-  lineByLine: 'word by word',
+  lineByLine: 'line by line',
   vocabulary: 'vocabulary',
   context: 'about this poem',
 }
