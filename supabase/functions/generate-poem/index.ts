@@ -25,6 +25,7 @@ Your audience is a single person — speak to her warmly, like a friend leaving 
 - literary_note: One small observation about the craft — a wordplay, a structural choice, an image worth lingering on. Like a friend pointing something out over tea.
 - sources: 1-3 scholarly or reliable sources (e.g. "全唐詩, Vol. 5", "唐詩三百首", a well-known translation anthology)
 - season_hint: If the poem clearly evokes a season, include "spring", "summer", "autumn", or "winter". Otherwise null.
+- illustration: Choose exactly ONE keyword from this list that best matches the poem's dominant imagery: "plum_blossom", "rain", "moon", "mountains", "willow", "river", "snow", "clouds", "chrysanthemum", "bamboo", "geese", "lotus", "pine", "stars", "mist". This will be used to render a faint decorative line drawing behind the poem. Pick the one that most resonates with the poem's central image or mood.
 
 Respond ONLY with a JSON object matching this exact shape:
 {
@@ -41,7 +42,8 @@ Respond ONLY with a JSON object matching this exact shape:
   "poem_background": "string",
   "literary_note": "string",
   "sources": ["string array"],
-  "season_hint": "spring | summer | autumn | winter | null"
+  "season_hint": "spring | summer | autumn | winter | null",
+  "illustration": "one of: plum_blossom | rain | moon | mountains | willow | river | snow | clouds | chrysanthemum | bamboo | geese | lotus | pine | stars | mist"
 }
 
 No markdown fences, no preamble. Just the JSON object.`;
@@ -165,6 +167,7 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         literary_note: poemData.literary_note,
         sources: poemData.sources,
         season_hint: seasonHint,
+        illustration: poemData.illustration || null,
       })
       .select()
       .single();

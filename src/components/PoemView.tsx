@@ -10,13 +10,7 @@ import { LineByLine } from './LineByLine'
 import { Vocabulary } from './Vocabulary'
 import { Context } from './Context'
 import { RevealLink } from './RevealLink'
-
-const SEASON_BG: Record<string, string> = {
-  spring: '#FBF7F1',
-  summer: '#FCF8EF',
-  autumn: '#FAF5EE',
-  winter: '#F8F5F1',
-}
+import { PoemIllustration } from './PoemIllustration'
 
 interface Props {
   poem: Poem
@@ -29,10 +23,10 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: P
   const { isRevealed, nextLayer, revealNext, toggleLayer } = useRevealState()
   const { isFavorited, toggleFavorite } = useFavorite(poem.id)
 
-  const bg = (poem.season_hint && SEASON_BG[poem.season_hint]) || '#FAF6F0'
-
   return (
-    <article className="px-6 pt-8 pb-20 max-w-[480px] mx-auto" style={{ backgroundColor: bg }}>
+    <article className="px-6 pt-8 pb-20 max-w-[480px] mx-auto min-h-dvh relative">
+      <PoemIllustration illustration={poem.illustration} />
+      <div className="relative">
       <DateHeader date={poem.date} />
 
       {/* Jyutping toggle — below date, right-aligned */}
@@ -126,6 +120,7 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: P
           onToggle={() => toggleLayer('context')}
         />
       )}
+      </div>
     </article>
   )
 }
