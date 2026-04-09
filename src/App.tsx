@@ -55,7 +55,6 @@ export default function App() {
       {poem && !loading && !error && (
         <PoemView
           poem={poem}
-          dayKey={dayKey}
           jyutpingOn={jyutpingOn}
           toggleJyutping={toggleJyutping}
           showFirstLabel={showFirstLabel}

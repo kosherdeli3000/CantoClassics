@@ -1,4 +1,4 @@
-import type { Poem, DayKey } from '../types/poem'
+import type { Poem } from '../types/poem'
 import { useRevealState } from '../hooks/useRevealState'
 import { useFavorite } from '../hooks/useFavorite'
 import { DateHeader } from './DateHeader'
@@ -10,17 +10,15 @@ import { LineByLine } from './LineByLine'
 import { Vocabulary } from './Vocabulary'
 import { Context } from './Context'
 import { RevealLink } from './RevealLink'
-import { PoemIllustration } from './PoemIllustration'
 
 interface Props {
   poem: Poem
-  dayKey: DayKey
   jyutpingOn: boolean
   toggleJyutping: () => void
   showFirstLabel: boolean
 }
 
-export function PoemView({ poem, dayKey, jyutpingOn, toggleJyutping, showFirstLabel }: Props) {
+export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: Props) {
   const { isRevealed, nextLayer, revealNext, toggleLayer } = useRevealState()
   const { isFavorited, toggleFavorite } = useFavorite(poem.id)
 
