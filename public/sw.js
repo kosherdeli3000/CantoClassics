@@ -1,10 +1,6 @@
-const CACHE_NAME = 'tangshi-v1'
-const PRECACHE = ['/']
+const CACHE_NAME = 'tangshi-v2'
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
-  )
   self.skipWaiting()
 })
 
@@ -20,20 +16,38 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  // Network-first for API calls, cache-first for assets
-  if (event.request.url.includes('/functions/') || event.request.url.includes('supabase')) {
+  const url = new URL(event.request.url)
+
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return
+
+  // Network-first for navigation (HTML), API calls, and supabase
+  if (
+    event.request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.href.includes('/functions/') ||
+    url.href.includes('supabase')
+  ) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    )
-  } else {
-    event.respondWith(
-      caches.match(event.request).then((cached) =>
-        cached || fetch(event.request).then((response) => {
+      fetch(event.request)
+        .then((response) => {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
           return response
         })
-      )
+        .catch(() => caches.match(event.request))
     )
+    return
   }
+
+  // Cache-first for hashed assets (JS, CSS, images)
+  event.respondWith(
+    caches.match(event.request).then((cached) =>
+      cached || fetch(event.request).then((response) => {
+        const clone = response.clone()
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+        return response
+      })
+    )
+  )
 })
