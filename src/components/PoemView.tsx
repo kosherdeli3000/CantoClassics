@@ -16,9 +16,10 @@ interface Props {
   jyutpingOn: boolean
   toggleJyutping: () => void
   showFirstLabel: boolean
+  onShowFavorites: () => void
 }
 
-export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: Props) {
+export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel, onShowFavorites }: Props) {
   const { isRevealed, nextLayer, revealNext, toggleLayer } = useRevealState()
   const { isFavorited, toggleFavorite } = useFavorite(poem.id)
 
@@ -118,6 +119,16 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel }: P
           onToggle={() => toggleLayer('context')}
         />
       )}
+
+      {/* Favorites link */}
+      <div className="flex justify-center pt-8 pb-4">
+        <button
+          onClick={onShowFavorites}
+          className="font-[var(--font-serif-en)] italic text-warm-gray-light text-xs hover:text-vermillion transition-colors"
+        >
+          poems I loved
+        </button>
+      </div>
       </div>
     </article>
   )

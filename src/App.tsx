@@ -10,9 +10,11 @@ import { LoadingState } from './components/LoadingState'
 import { ErrorState } from './components/ErrorState'
 import { DayNavigation } from './components/DayNavigation'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { FavoritesPage } from './components/FavoritesPage'
 
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(true)
+  const [showFavorites, setShowFavorites] = useState(false)
   const [currentThursday, setCurrentThursday] = useState(() => getThursday(todayStr()))
   const { poem, dayKey, loading, error, retry } = usePoem(currentThursday)
   const { jyutpingOn, toggleJyutping, showFirstLabel } = useJyutpingToggle()
@@ -38,6 +40,18 @@ export default function App() {
     return <WelcomeScreen onDismiss={() => setShowWelcome(false)} />
   }
 
+  if (showFavorites) {
+    return (
+      <FavoritesPage
+        onBack={() => setShowFavorites(false)}
+        onSelectPoem={(thursdayDate) => {
+          setCurrentThursday(thursdayDate)
+          setShowFavorites(false)
+        }}
+      />
+    )
+  }
+
   return (
     <div
       className="min-h-dvh bg-parchment relative"
@@ -58,6 +72,7 @@ export default function App() {
           jyutpingOn={jyutpingOn}
           toggleJyutping={toggleJyutping}
           showFirstLabel={showFirstLabel}
+          onShowFavorites={() => setShowFavorites(true)}
         />
       )}
 
