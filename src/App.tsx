@@ -65,7 +65,12 @@ export default function App() {
           <LoadingState date={currentThursday} />
         </div>
       )}
-      {error && !loading && <ErrorState onRetry={retry} />}
+      {error && !loading && (
+        <ErrorState
+          onRetry={retry}
+          onGoHome={() => setCurrentThursday(getThursday(todayStr()))}
+        />
+      )}
       {poem && !loading && !error && (
         <PoemView
           poem={poem}

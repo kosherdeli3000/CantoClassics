@@ -24,17 +24,32 @@ export function usePoem(weekDate: string): UsePoemResult {
     setError(null)
 
     try {
-      // Try to get from DB directly using the Thursday date
-      const { data: existing } = await supabase
+      // Try exact date first (handles old pre-weekly poems)
+      const { data: exact } = await supabase
         .from('poems')
         .select('*')
-        .eq('date', thursday)
+        .eq('date', weekDate)
         .single()
 
-      if (existing) {
-        setPoem(existing as Poem)
+      if (exact) {
+        setPoem(exact as Poem)
         setLoading(false)
         return
+      }
+
+      // Try Thursday date
+      if (thursday !== weekDate) {
+        const { data: thuPoem } = await supabase
+          .from('poems')
+          .select('*')
+          .eq('date', thursday)
+          .single()
+
+        if (thuPoem) {
+          setPoem(thuPoem as Poem)
+          setLoading(false)
+          return
+        }
       }
 
       // If not found, call the edge function to generate
@@ -56,7 +71,7 @@ export function usePoem(weekDate: string): UsePoemResult {
 
   useEffect(() => {
     fetchPoem()
-  }, [thursday])
+  }, [weekDate])
 
   return { poem, dayKey, loading, error, retry: fetchPoem }
 }
