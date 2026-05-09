@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { usePoem } from './hooks/usePoem'
+import { usePoemDates } from './hooks/usePoemDates'
 import { useJyutpingToggle } from './hooks/useJyutpingToggle'
 import { useSwipeNavigation } from './hooks/useSwipeNavigation'
-import { todayStr, getThursday, shiftWeek } from './lib/dates'
+import { todayStr, getThursday } from './lib/dates'
 import { PoemView } from './components/PoemView'
 import { PoemIllustration } from './components/PoemIllustration'
 import { DateHeader } from './components/DateHeader'
@@ -18,21 +19,50 @@ export default function App() {
   const [currentThursday, setCurrentThursday] = useState(() => getThursday(todayStr()))
   const { poem, dayKey, loading, error, retry } = usePoem(currentThursday)
   const { jyutpingOn, toggleJyutping, showFirstLabel } = useJyutpingToggle()
+  const { dates: poemDates } = usePoemDates()
 
   const thisThursday = getThursday(todayStr())
-  const canGoForward = currentThursday < thisThursday
+
+  // Navigation walks the list of dates that actually have poems, ordered
+  // most-recent first. If the current Thursday isn't yet in the list (i.e.
+  // this week's poem is still being generated), "back" jumps to the latest
+  // existing poem.
+  const { canGoBack, canGoForward, prevDate, nextDate } = useMemo(() => {
+    if (poemDates.length === 0) {
+      return { canGoBack: false, canGoForward: false, prevDate: null, nextDate: null }
+    }
+
+    const idx = poemDates.indexOf(currentThursday)
+
+    if (idx === -1) {
+      // Current Thursday isn't in the list — treat it as "newer than newest".
+      // Back goes to the most recent existing poem; forward is disabled.
+      return {
+        canGoBack: true,
+        canGoForward: false,
+        prevDate: poemDates[0],
+        nextDate: null,
+      }
+    }
+
+    const prev = idx < poemDates.length - 1 ? poemDates[idx + 1] : null // older
+    const next = idx > 0 ? poemDates[idx - 1] : null // newer
+
+    return {
+      canGoBack: prev !== null,
+      canGoForward: next !== null,
+      prevDate: prev,
+      nextDate: next,
+    }
+  }, [poemDates, currentThursday])
 
   const goBack = useCallback(() => {
-    setCurrentThursday((d) => shiftWeek(d, -1))
-  }, [])
+    if (prevDate) setCurrentThursday(prevDate)
+  }, [prevDate])
 
   const goForward = useCallback(() => {
-    if (!canGoForward) return
-    setCurrentThursday((d) => {
-      const next = shiftWeek(d, 1)
-      return next <= getThursday(todayStr()) ? next : d
-    })
-  }, [canGoForward])
+    if (nextDate) setCurrentThursday(nextDate)
+  }, [nextDate])
 
   const swipe = useSwipeNavigation(goForward, goBack)
 
@@ -68,7 +98,7 @@ export default function App() {
       {error && !loading && (
         <ErrorState
           onRetry={retry}
-          onGoHome={() => setCurrentThursday(getThursday(todayStr()))}
+          onGoHome={() => setCurrentThursday(thisThursday)}
         />
       )}
       {poem && !loading && !error && (
@@ -83,6 +113,7 @@ export default function App() {
 
       <DayNavigation
         currentDate={currentThursday}
+        canGoBack={canGoBack}
         canGoForward={canGoForward}
         onPrev={goBack}
         onNext={goForward}

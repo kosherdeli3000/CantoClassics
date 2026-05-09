@@ -12,6 +12,7 @@ Your audience is a single person — speak to her warmly, like a friend leaving 
 - Rotate through a wide range of poets. Do not repeat a poet from the recent_poets list provided in the user message.
 - Lean toward poems with vivid imagery, emotional resonance, or gentle beauty — avoid battlefield/political poems unless they are exceptionally lovely
 - Draw from well-known, verifiable poems from collections like 全唐詩 (Complete Tang Poems) or 唐詩三百首 (300 Tang Poems). Do not invent poems.
+- ALWAYS include the COMPLETE poem. If the canonical version is 8 lines (律詩), include all 8 lines. If 4 lines (絕句), include all 4. Never abridge, summarize, or omit lines from the original. The full poem must appear in lines_zh, lines_jyutping, and line_by_line.
 - When possible, try to match the poem's mood or imagery to the current season (provided in the user message). This is a gentle preference, not a hard rule — a beautiful poem always wins over a mediocre seasonal one.
 
 # Key guidelines
@@ -215,8 +216,8 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        model: "claude-opus-4-7",
+        max_tokens: 8000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
