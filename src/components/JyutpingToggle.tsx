@@ -13,7 +13,7 @@ export function JyutpingToggle({ isOn, onToggle, showFirstLabel }: Props) {
         className={`
           w-9 h-9 rounded-full
           flex items-center justify-center
-          font-[var(--font-serif-zh)] text-xs
+          font-serif-zh text-xs
           transition-all duration-200 ease-out
           border
           ${isOn
@@ -25,7 +25,7 @@ export function JyutpingToggle({ isOn, onToggle, showFirstLabel }: Props) {
         粵
       </button>
       {showFirstLabel && (
-        <span className="font-[var(--font-serif-en)] italic text-warm-gray text-xs animate-pulse">
+        <span className="font-serif-en italic text-warm-gray text-xs animate-pulse">
           粵拼 on
         </span>
       )}

@@ -14,7 +14,7 @@ export function LineByLine({ lines, visible, onToggle }: Props) {
     <div className="mt-6 mb-4 border-t border-rule pt-5">
       <button
         onClick={onToggle}
-        className="font-[var(--font-serif-en)] italic text-warm-gray text-sm mb-4 hover:text-vermillion transition-colors flex items-center gap-1"
+        className="font-serif-en italic text-warm-gray text-sm mb-4 hover:text-vermillion transition-colors flex items-center gap-1"
       >
         Line by line {visible ? '−' : '↓'}
       </button>
@@ -33,11 +33,11 @@ export function LineByLine({ lines, visible, onToggle }: Props) {
                 }
               `}
             >
-              <p className="font-[var(--font-serif-zh)] text-ink text-xl">{line.zh}</p>
-              <p className="font-[var(--font-serif-en)] italic text-warm-gray text-sm mt-0.5">
+              <p className="font-serif-zh text-ink text-xl">{line.zh}</p>
+              <p className="font-serif-en italic text-warm-gray text-sm mt-0.5">
                 {line.jyutping}
               </p>
-              <p className="font-[var(--font-serif-en)] text-ink-light text-base mt-1">
+              <p className="font-serif-en text-ink-light text-base mt-1">
                 {line.en}
               </p>
 
@@ -47,13 +47,13 @@ export function LineByLine({ lines, visible, onToggle }: Props) {
                   <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                     {line.words.map((w, j) => (
                       <div key={j} className="text-center">
-                        <span className="font-[var(--font-serif-zh)] text-ink text-base block">
+                        <span className="font-serif-zh text-ink text-base block">
                           {w.char}
                         </span>
-                        <span className="font-[var(--font-serif-en)] italic text-warm-gray text-xs block">
+                        <span className="font-serif-en italic text-warm-gray text-xs block">
                           {w.jyutping}
                         </span>
-                        <span className="font-[var(--font-serif-en)] text-warm-gray text-xs block">
+                        <span className="font-serif-en text-warm-gray text-xs block">
                           {w.meaning}
                         </span>
                       </div>

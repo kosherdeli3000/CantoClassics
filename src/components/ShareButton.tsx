@@ -30,7 +30,7 @@ export function ShareButton({ poem }: Props) {
   return (
     <button
       onClick={handleShare}
-      className="font-[var(--font-serif-en)] italic text-warm-gray text-sm hover:text-vermillion transition-colors duration-200"
+      className="font-serif-en italic text-warm-gray text-sm hover:text-vermillion transition-colors duration-200"
     >
       {copied ? 'copied' : 'share'}
     </button>

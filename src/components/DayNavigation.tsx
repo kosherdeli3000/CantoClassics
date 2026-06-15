@@ -29,7 +29,7 @@ export function DayNavigation({ currentDate, canGoBack, canGoForward, onPrev, on
         &lsaquo;
       </button>
 
-      <span className="font-[var(--font-serif-en)] text-warm-gray-light text-xs">
+      <span className="font-serif-en text-warm-gray-light text-xs">
         {dateLabel}
       </span>
 

@@ -28,10 +28,10 @@ export function WelcomeScreen({ onDismiss }: Props) {
       className="fixed inset-0 z-50 bg-parchment flex flex-col items-center justify-center cursor-pointer gap-3"
       onClick={onDismiss}
     >
-      <p className="font-[var(--font-serif-zh)] text-ink-light text-xl text-center px-12">
+      <p className="font-serif-zh text-ink-light text-xl text-center px-12">
         你好，我的愛。
       </p>
-      <p className="font-[var(--font-serif-zh)] text-warm-gray text-lg text-center px-12">
+      <p className="font-serif-zh text-warm-gray text-lg text-center px-12">
         今天{chineseDay}
       </p>
     </div>

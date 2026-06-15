@@ -27,10 +27,10 @@ export function DateHeader({ date }: Props) {
 
   return (
     <header className="text-center mb-8">
-      <p className="font-[var(--font-serif-zh)] text-warm-gray text-lg tracking-widest">
+      <p className="font-serif-zh text-warm-gray text-lg tracking-widest">
         {zhDate}
       </p>
-      <p className="font-[var(--font-serif-en)] text-warm-gray-light text-sm mt-1">
+      <p className="font-serif-en text-warm-gray-light text-sm mt-1">
         {enDate}
       </p>
     </header>

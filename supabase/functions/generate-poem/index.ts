@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Converter } from "https://esm.sh/opencc-js@1.3.1";
+import { getJyutpingCandidates } from "https://esm.sh/to-jyutping@3.1.1";
 
 const DAY_KEYS = ["thu", "fri", "sat", "sun", "mon", "tue", "wed"];
 
@@ -133,6 +135,166 @@ async function generateImage(prompt: string, runwayKey: string): Promise<string 
   }
 }
 
+// ── Post-generation normalization ──────────────────────────────────────────
+// The model occasionally slips a Simplified glyph past the "Traditional only"
+// instruction (e.g. 樓台 instead of 樓臺) or a non-standard Jyutping reading
+// (e.g. the n→l lazy-initial merger 濃 "lung4" instead of "nung4"). This pass
+// deterministically repairs both classes before the poem is stored.
+
+// Simplified → Traditional. OpenCC assumes its input is Simplified, so feeding
+// it already-Traditional text mangles characters valid in BOTH scripts
+// (里→裏, 后→後, 台→臺, 岳→嶽…). We convert character-by-character and SKIP any
+// character in this shared/ambiguous set, so only confident Simplified-only
+// glyphs are rewritten and genuine Traditional text is left untouched.
+const s2tRaw = Converter({ from: "cn", to: "t" });
+
+const SHARED_HAN = new Set([
+  "里", "台", "后", "岳", "晒", "松", "谷", "丑", "面", "几", "云", "余",
+  "系", "表", "范", "折", "制", "致", "沖", "卜", "仆", "借", "干", "卷",
+  "征", "别", "占", "划", "准", "雇", "朱", "涂", "蒙", "升", "周", "姜",
+  "漓", "著", "着", "才", "丰", "夸", "舍", "曲", "尽", "向", "咸", "胡",
+]);
+
+function s2t(str: string): string {
+  if (typeof str !== "string") return str;
+  let out = "";
+  for (const c of str) {
+    const t = s2tRaw(c);
+    out += (t !== c && !SHARED_HAN.has(c)) ? t : c;
+  }
+  return out;
+}
+
+const HAN = /\p{Script=Han}/u;
+
+// Lazy-initial romanization slips: the rime is identical and only the initial
+// differs by a known merger pair. These are sloppiness, not real polyphones.
+const MERGER_PAIRS = [["l", "n"], ["", "ng"]];
+
+function splitInitial(syl: string): { initial: string; rest: string } {
+  const m = syl.match(/^(ng|gw|kw|[bpmfdtnlgkhzcsjw])?(.*)$/);
+  return { initial: (m && m[1]) || "", rest: (m && m[2]) || syl };
+}
+
+function isLazyMerger(a: string, b: string): boolean {
+  const A = splitInitial(a);
+  const B = splitInitial(b);
+  if (A.rest !== B.rest) return false;
+  const pair = [A.initial, B.initial].sort();
+  return MERGER_PAIRS.some((p) => p[0] === pair[0] && p[1] === pair[1]);
+}
+
+type JpChange = { ch: string; from: string; to: string; kind: string };
+
+// Correct a single character's Jyutping against the standard reading.
+// Returns the corrected syllable, or null to keep the model's choice.
+function correctSyllable(ch: string, jp: string, log: JpChange[]): string | null {
+  const cands = getJyutpingCandidates(ch);
+  if (!cands.length || !cands[0][1] || !cands[0][1].length) return null; // unknown char
+  const readings: string[] = cands[0][1];
+  const primary = readings[0];
+  if (jp === primary) return null;
+  if (readings.includes(jp)) {
+    // Valid alternate reading — only normalize a lazy-initial slip of the primary;
+    // otherwise it's a genuine contextual polyphone, so keep the model's choice.
+    if (isLazyMerger(jp, primary)) {
+      log.push({ ch, from: jp, to: primary, kind: "merger" });
+      return primary;
+    }
+    return null;
+  }
+  // Not a valid reading at all → clear error, snap to the standard reading.
+  log.push({ ch, from: jp, to: primary, kind: "invalid" });
+  return primary;
+}
+
+// Correct the Jyutping of a "word" (single char or compound). Only touches the
+// clean case where every element is Han and the syllable count lines up.
+function correctWordJp(charStr: string, jpStr: string, log: JpChange[]): string {
+  const chars = [...charStr];
+  if (!chars.every((c) => HAN.test(c))) return jpStr;
+  const toks = jpStr.trim().split(/\s+/);
+  if (toks.length !== chars.length) return jpStr;
+  return toks.map((t, i) => correctSyllable(chars[i], t, log) ?? t).join(" ");
+}
+
+function trailingPunct(zhLine: string): string {
+  const last = (zhLine || "").trim().slice(-1);
+  if (last === "，" || last === ",") return ",";
+  if (last === "。" || last === ".") return ".";
+  return "";
+}
+
+// deno-lint-ignore no-explicit-any
+function normalizePoem(input: any): { poem: any; changes: JpChange[] } {
+  const log: JpChange[] = [];
+  const p = { ...input };
+
+  // 1) Simplified → Traditional on Chinese-bearing fields.
+  for (const f of ["title_zh", "author_zh", "author_bio", "poem_background", "literary_note"]) {
+    if (typeof p[f] === "string") p[f] = s2t(p[f]);
+  }
+  if (Array.isArray(p.lines_zh)) p.lines_zh = p.lines_zh.map((s: string) => s2t(s));
+  if (Array.isArray(p.sources)) p.sources = p.sources.map((s: string) => s2t(s));
+  if (Array.isArray(p.line_by_line)) {
+    // deno-lint-ignore no-explicit-any
+    p.line_by_line = p.line_by_line.map((lb: any) => ({
+      ...lb,
+      zh: typeof lb.zh === "string" ? s2t(lb.zh) : lb.zh,
+      words: Array.isArray(lb.words)
+        // deno-lint-ignore no-explicit-any
+        ? lb.words.map((w: any) => ({ ...w, char: typeof w.char === "string" ? s2t(w.char) : w.char }))
+        : lb.words,
+    }));
+  }
+  if (Array.isArray(p.vocabulary)) {
+    // deno-lint-ignore no-explicit-any
+    p.vocabulary = p.vocabulary.map((v: any) => ({
+      ...v,
+      character: typeof v.character === "string" ? s2t(v.character) : v.character,
+      note: typeof v.note === "string" ? s2t(v.note) : v.note,
+    }));
+  }
+
+  // 2) Jyutping correction, driven by the per-word readings in line_by_line.
+  if (Array.isArray(p.line_by_line)) {
+    // deno-lint-ignore no-explicit-any
+    p.line_by_line = p.line_by_line.map((lb: any, i: number) => {
+      const before = log.length;
+      let words = lb.words;
+      if (Array.isArray(words)) {
+        // deno-lint-ignore no-explicit-any
+        words = words.map((w: any) => {
+          if (typeof w.char !== "string" || typeof w.jyutping !== "string") return w;
+          const fixed = correctWordJp(w.char, w.jyutping, log);
+          return fixed === w.jyutping ? w : { ...w, jyutping: fixed };
+        });
+      }
+      let lineJp = lb.jyutping;
+      // Regenerate the line-level string only when something on this line changed.
+      if (log.length !== before && Array.isArray(words)) {
+        // deno-lint-ignore no-explicit-any
+        lineJp = words.map((w: any) => w.jyutping).join(" ") +
+          trailingPunct(lb.zh || (p.lines_zh || [])[i] || "");
+        if (Array.isArray(p.lines_jyutping)) p.lines_jyutping[i] = lineJp;
+      }
+      return { ...lb, words, jyutping: lineJp };
+    });
+  }
+
+  // 3) Vocabulary Jyutping (compounds split on spaces).
+  if (Array.isArray(p.vocabulary)) {
+    // deno-lint-ignore no-explicit-any
+    p.vocabulary = p.vocabulary.map((v: any) => {
+      if (typeof v.character !== "string" || typeof v.jyutping !== "string") return v;
+      const fixed = correctWordJp(v.character, v.jyutping, log);
+      return fixed === v.jyutping ? v : { ...v, jyutping: fixed };
+    });
+  }
+
+  return { poem: p, changes: log };
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -216,7 +378,7 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-opus-4-7",
+        model: "claude-sonnet-4-6",
         max_tokens: 8000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
@@ -236,6 +398,16 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
       poemData = JSON.parse(content);
     } catch {
       throw new Error("Failed to parse poem JSON from Claude response");
+    }
+
+    // Repair stray Simplified glyphs and non-standard Jyutping before storing.
+    const { poem: normalizedPoem, changes } = normalizePoem(poemData);
+    poemData = normalizedPoem;
+    if (changes.length > 0) {
+      console.log(
+        `Normalized ${changes.length} issue(s) in "${poemData.title_zh}":`,
+        JSON.stringify(changes),
+      );
     }
 
     const validSeasons = ["spring", "summer", "autumn", "winter"];

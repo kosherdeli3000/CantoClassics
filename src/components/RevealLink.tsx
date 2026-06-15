@@ -21,7 +21,7 @@ export function RevealLink({ nextLayer, onReveal }: Props) {
       className="
         mx-auto block mt-8 mb-4
         text-vermillion hover:text-vermillion-light
-        text-sm font-[var(--font-serif-en)] italic
+        text-sm font-serif-en italic
         transition-colors duration-200
         py-2 px-4
       "

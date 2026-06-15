@@ -11,7 +11,7 @@
   --color-warm-gray-light: #B0A496;
   --color-rule: #E0D5C8;
 
-  --font-serif-zh: "Noto Serif TC", "Songti TC", serif;
+  --font-serif-zh: "Noto Serif TC", "Songti TC", "Source Han Serif TC", "PMingLiU", "MingLiU", serif;
   --font-serif-en: "Crimson Pro", "Georgia", serif;
 }
 

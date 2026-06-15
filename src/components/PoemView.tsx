@@ -40,17 +40,17 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel, onS
       {/* Title & Author */}
       <div className="text-center mb-2">
         <div className="flex items-center justify-center gap-3">
-          <h1 className="font-[var(--font-serif-zh)] text-ink text-xl sm:text-2xl font-semibold">
+          <h1 className="font-serif-zh text-ink text-xl sm:text-2xl font-semibold">
             {poem.title_zh}
           </h1>
         </div>
         <div className="flex items-center justify-center gap-2 mt-1">
-          <p className="font-[var(--font-serif-zh)] text-warm-gray text-base">
+          <p className="font-serif-zh text-warm-gray text-base">
             {poem.author_zh}
           </p>
           <FavoriteButton isFavorited={isFavorited} onToggle={toggleFavorite} />
         </div>
-        <p className="font-[var(--font-serif-en)] text-warm-gray-light text-sm italic mt-0.5">
+        <p className="font-serif-en text-warm-gray-light text-sm italic mt-0.5">
           {poem.title_en} — {poem.author_en}
         </p>
       </div>
@@ -124,7 +124,7 @@ export function PoemView({ poem, jyutpingOn, toggleJyutping, showFirstLabel, onS
       <div className="flex justify-center pt-8 pb-4">
         <button
           onClick={onShowFavorites}
-          className="font-[var(--font-serif-en)] italic text-warm-gray-light text-xs hover:text-vermillion transition-colors"
+          className="font-serif-en italic text-warm-gray-light text-xs hover:text-vermillion transition-colors"
         >
           poems I loved
         </button>

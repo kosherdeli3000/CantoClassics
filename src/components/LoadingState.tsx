@@ -25,7 +25,7 @@ export function LoadingState({ date }: Props) {
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
       <p
         key={messageIndex}
-        className="font-[var(--font-serif-en)] text-warm-gray text-base italic reveal-enter"
+        className="font-serif-en text-warm-gray text-base italic reveal-enter"
       >
         {MESSAGES[messageIndex]}
       </p>
