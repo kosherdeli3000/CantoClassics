@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { usePoem } from './hooks/usePoem'
 import { usePoemDates } from './hooks/usePoemDates'
 import { useJyutpingToggle } from './hooks/useJyutpingToggle'
@@ -22,6 +22,24 @@ export default function App() {
   const { dates: poemDates } = usePoemDates()
 
   const thisThursday = getThursday(todayStr())
+
+  // The week is computed once at mount. An installed PWA can sit suspended
+  // in the background across a Thursday and resume without reloading, which
+  // would keep showing last week's poem. Reload if the week has rolled over.
+  const [mountThursday] = useState(thisThursday)
+  useEffect(() => {
+    function checkWeek() {
+      if (document.visibilityState === 'visible' && getThursday(todayStr()) !== mountThursday) {
+        window.location.reload()
+      }
+    }
+    document.addEventListener('visibilitychange', checkWeek)
+    window.addEventListener('focus', checkWeek)
+    return () => {
+      document.removeEventListener('visibilitychange', checkWeek)
+      window.removeEventListener('focus', checkWeek)
+    }
+  }, [mountThursday])
 
   // Navigation walks the list of dates that actually have poems, ordered
   // most-recent first. If the current Thursday isn't yet in the list (i.e.

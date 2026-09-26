@@ -297,6 +297,43 @@ function normalizePoem(input: any): { poem: any; changes: JpChange[] } {
   return { poem: p, changes: log };
 }
 
+const MAX_ATTEMPTS = 3;
+
+// Compare titles without the 《》 brackets, punctuation, or spacing the model
+// sometimes varies between runs.
+function normalizeTitle(title: unknown): string {
+  if (typeof title !== "string") return "";
+  return s2t(title).replace(/[《》〈〉「」\s·・]/g, "");
+}
+
+async function callClaude(
+  messages: { role: string; content: string }[],
+  anthropicKey: string,
+): Promise<string> {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8000,
+      system: SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Claude API error: ${response.status} — ${errorText}`);
+  }
+
+  const result = await response.json();
+  return result.content[0].text;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -355,13 +392,13 @@ Deno.serve(async (req) => {
     const { data: recentPoems } = await supabase
       .from("poems")
       .select("author_zh, title_zh")
-      .order("date", { ascending: false })
-      .limit(30);
+      .order("date", { ascending: false });
 
     const recentPoets = [
       ...new Set((recentPoems || []).slice(0, 10).map((p) => p.author_zh)),
     ];
-    const recentTitles = (recentPoems || []).map((p) => p.title_zh);
+    const allTitles = (recentPoems || []).map((p) => p.title_zh);
+    const recentTitles = allTitles.slice(0, 30);
 
     const season = getSeason(targetDate);
 
@@ -371,35 +408,36 @@ Current season: ${season}
 Recent poets (avoid repeating): ${recentPoets.join(", ") || "none yet"}
 Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}`;
 
-    // Call Claude API
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Claude API error: ${response.status} — ${errorText}`);
-    }
-
-    const result = await response.json();
-    const content = result.content[0].text;
+    // The recent-titles list above is only a hint; the model can (and does)
+    // pick the same famous poem again. Check the result against what's
+    // already stored and ask again, naming the repeat, if it matches.
+    const seenTitles = new Set(allTitles.map(normalizeTitle));
+    const messages: { role: string; content: string }[] = [
+      { role: "user", content: userMessage },
+    ];
 
     let poemData;
-    try {
-      poemData = JSON.parse(content);
-    } catch {
-      throw new Error("Failed to parse poem JSON from Claude response");
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const content = await callClaude(messages, anthropicKey);
+      try {
+        poemData = JSON.parse(content);
+      } catch {
+        throw new Error("Failed to parse poem JSON from Claude response");
+      }
+
+      if (!seenTitles.has(normalizeTitle(poemData.title_zh))) break;
+
+      console.warn(`Attempt ${attempt + 1}: repeated poem ${poemData.title_zh}`);
+      if (attempt === MAX_ATTEMPTS - 1) {
+        throw new Error(`Model kept repeating a previous poem (${poemData.title_zh})`);
+      }
+      messages.push(
+        { role: "assistant", content },
+        {
+          role: "user",
+          content: `${poemData.title_zh} has already been served. Choose a different poem that is not in the previous titles list, and respond with the full JSON object again.`,
+        },
+      );
     }
 
     // Repair stray Simplified glyphs and non-standard Jyutping before storing.
