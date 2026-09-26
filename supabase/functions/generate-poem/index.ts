@@ -306,6 +306,11 @@ function normalizeTitle(title: unknown): string {
   return s2t(title).replace(/[《》〈〉「」\s·・]/g, "");
 }
 
+function normalizeLine(line: unknown): string {
+  if (typeof line !== "string") return "";
+  return s2t(line).replace(/[\s\p{P}]/gu, "");
+}
+
 async function callClaude(
   messages: { role: string; content: string }[],
   anthropicKey: string,
@@ -391,7 +396,7 @@ Deno.serve(async (req) => {
     // No poem for this week — generate one
     const { data: recentPoems } = await supabase
       .from("poems")
-      .select("author_zh, title_zh")
+      .select("author_zh, title_zh, lines_zh")
       .order("date", { ascending: false });
 
     const recentPoets = [
@@ -411,7 +416,12 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
     // The recent-titles list above is only a hint; the model can (and does)
     // pick the same famous poem again. Check the result against what's
     // already stored and ask again, naming the repeat, if it matches.
+    // Match on the opening line as well as the title: the same poem can come
+    // back under a variant title or credited to a different poet.
     const seenTitles = new Set(allTitles.map(normalizeTitle));
+    const seenFirstLines = new Set(
+      (recentPoems || []).map((p) => normalizeLine(p.lines_zh?.[0])).filter(Boolean),
+    );
     const messages: { role: string; content: string }[] = [
       { role: "user", content: userMessage },
     ];
@@ -425,7 +435,9 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
         throw new Error("Failed to parse poem JSON from Claude response");
       }
 
-      if (!seenTitles.has(normalizeTitle(poemData.title_zh))) break;
+      const isRepeat = seenTitles.has(normalizeTitle(poemData.title_zh)) ||
+        seenFirstLines.has(normalizeLine(poemData.lines_zh?.[0]));
+      if (!isRepeat) break;
 
       console.warn(`Attempt ${attempt + 1}: repeated poem ${poemData.title_zh}`);
       if (attempt === MAX_ATTEMPTS - 1) {
