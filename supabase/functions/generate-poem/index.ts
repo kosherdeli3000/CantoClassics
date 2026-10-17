@@ -314,6 +314,8 @@ function normalizeLine(line: unknown): string {
 async function callClaude(
   messages: { role: string; content: string }[],
   anthropicKey: string,
+  system = SYSTEM_PROMPT,
+  maxTokens = 8000,
 ): Promise<string> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -324,8 +326,8 @@ async function callClaude(
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 8000,
-      system: SYSTEM_PROMPT,
+      max_tokens: maxTokens,
+      system,
       messages,
     }),
   });
@@ -337,6 +339,63 @@ async function callClaude(
 
   const result = await response.json();
   return result.content[0].text;
+}
+
+const VERIFY_PROMPT = `You are a reference librarian for classical Chinese poetry. Given a few lines, identify the poem they come from and give its canonical title, author, and COMPLETE text in Traditional Chinese, as found in 全唐詩 or 唐詩三百首 (use the 唐詩三百首 title when the poem appears there). Respond ONLY with JSON: {"title_zh": "string", "author_zh": "string", "lines_zh": ["one string per line"]}. If you cannot identify the poem with confidence, respond {"unknown": true}.`;
+
+type Canonical = { title_zh: string; author_zh: string; lines_zh: string[] };
+
+// Ask a fresh model call, which never saw the generation prompt, which poem
+// these lines come from. Returns null when it can't say.
+async function identifyPoem(lines: string[], anthropicKey: string): Promise<Canonical | null> {
+  try {
+    const text = await callClaude(
+      [{ role: "user", content: lines.slice(0, 4).join("\n") }],
+      anthropicKey,
+      VERIFY_PROMPT,
+      2000,
+    );
+    const data = JSON.parse(text);
+    if (data.unknown || typeof data.title_zh !== "string" || !Array.isArray(data.lines_zh)) {
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Poem verification failed:", err);
+    return null;
+  }
+}
+
+// Problems with a generated poem, as sentences to send back to the model.
+// Empty when it looks right.
+// deno-lint-ignore no-explicit-any
+async function findProblems(poem: any, anthropicKey: string): Promise<string[]> {
+  const lines: string[] = Array.isArray(poem.lines_zh) ? poem.lines_zh : [];
+  const problems: string[] = [];
+
+  if (!Array.isArray(poem.lines_jyutping) || poem.lines_jyutping.length !== lines.length ||
+      !Array.isArray(poem.line_by_line) || poem.line_by_line.length !== lines.length) {
+    problems.push(
+      `lines_zh, lines_jyutping and line_by_line must have the same number of entries (one per line of the poem).`,
+    );
+  }
+
+  const canon = await identifyPoem(lines, anthropicKey);
+  if (canon) {
+    const fullText = canon.lines_zh.map((l) => s2t(l)).join("\n");
+    if (normalizeTitle(canon.title_zh) !== normalizeTitle(poem.title_zh)) {
+      problems.push(`The title is wrong: this poem is ${canon.title_zh}, not ${poem.title_zh}.`);
+    }
+    if (canon.author_zh && s2t(canon.author_zh) !== s2t(poem.author_zh ?? "")) {
+      problems.push(`The author is wrong: this poem is by ${canon.author_zh}, not ${poem.author_zh}.`);
+    }
+    if (canon.lines_zh.length !== lines.length) {
+      problems.push(
+        `The poem is incomplete or has extra lines: the canonical text has ${canon.lines_zh.length} lines, not ${lines.length}. The complete text is:\n${fullText}`,
+      );
+    }
+  }
+  return problems;
 }
 
 Deno.serve(async (req) => {
@@ -437,19 +496,25 @@ Previous poem titles (avoid repeating): ${recentTitles.join(", ") || "none yet"}
 
       const isRepeat = seenTitles.has(normalizeTitle(poemData.title_zh)) ||
         seenFirstLines.has(normalizeLine(poemData.lines_zh?.[0]));
-      if (!isRepeat) break;
-
-      console.warn(`Attempt ${attempt + 1}: repeated poem ${poemData.title_zh}`);
-      if (attempt === MAX_ATTEMPTS - 1) {
-        throw new Error(`Model kept repeating a previous poem (${poemData.title_zh})`);
+      let feedback: string;
+      if (isRepeat) {
+        console.warn(`Attempt ${attempt + 1}: repeated poem ${poemData.title_zh}`);
+        if (attempt === MAX_ATTEMPTS - 1) {
+          throw new Error(`Model kept repeating a previous poem (${poemData.title_zh})`);
+        }
+        feedback = `${poemData.title_zh} has already been served. Choose a different poem that is not in the previous titles list, and respond with the full JSON object again.`;
+      } else {
+        // Check the title, author and completeness against an independent
+        // identification of the poem.
+        const problems = await findProblems(poemData, anthropicKey);
+        if (problems.length === 0) break;
+        console.warn(`Attempt ${attempt + 1}: ${problems.join(" ")}`);
+        if (attempt === MAX_ATTEMPTS - 1) {
+          throw new Error(`Generated poem failed verification: ${problems.join(" ")}`);
+        }
+        feedback = `There are problems with that poem:\n- ${problems.join("\n- ")}\nFix them and respond with the full JSON object again, covering every line of the complete poem.`;
       }
-      messages.push(
-        { role: "assistant", content },
-        {
-          role: "user",
-          content: `${poemData.title_zh} has already been served. Choose a different poem that is not in the previous titles list, and respond with the full JSON object again.`,
-        },
-      );
+      messages.push({ role: "assistant", content }, { role: "user", content: feedback });
     }
 
     // Repair stray Simplified glyphs and non-standard Jyutping before storing.
